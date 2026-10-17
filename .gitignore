@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+build/
+.DS_Store
+android/local.properties
+android/.gradle/
+android/**/build/
