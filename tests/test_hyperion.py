@@ -399,3 +399,19 @@ def test_wrong_password_is_refused():
     finally:
         client.close()
         thread.join(2)
+
+
+def test_english_ui_keeps_the_server_name():
+    import app.i18n as i18n
+
+    i18n._force = True
+    try:
+        assert i18n.tr("Подключить") == "Connect"
+        assert i18n.tr("Адаптив") == "Adaptive"
+        assert i18n.tr("Стол") == "Desk"
+        assert i18n.tr("Лента {number}").format(number=2) == "Strip 2"
+        assert i18n.tr("Solid") == "Solid"
+    finally:
+        i18n._force = False
+    assert i18n.tr("Подключить") == "Подключить"
+    assert i18n.tr("Адаптив") == "Адаптив"

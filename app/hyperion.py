@@ -11,6 +11,8 @@ import json
 import socket
 import threading
 
+from app.i18n import tr
+
 ORIGIN = "Ampilight"
 DEFAULT_HOST = "192.168.100.7"
 DEFAULT_PORT = 19444
@@ -75,7 +77,7 @@ class HyperionClient:
     def connect(self, host: str, port: int, password: str) -> list[tuple[int, str]]:
         host = host.strip()
         if not host:
-            raise RuntimeError("Укажите адрес сервера")
+            raise RuntimeError(tr("Укажите адрес сервера"))
         self.host = host
         self.port = int(port)
         self.password = password
@@ -92,7 +94,7 @@ class HyperionClient:
             self._open()
             info = self._rpc({"command": "serverinfo"})
             if not info.get("success"):
-                raise RuntimeError(_error_text(info, "Hyperion не ответил"))
+                raise RuntimeError(_error_text(info, tr("Hyperion не ответил")))
             strips = _strips(info)
             for number, _name in strips:
                 started = self._rpc(
@@ -106,7 +108,7 @@ class HyperionClient:
             if strips:
                 self.instance = strips[0][0]
             self.modes = _modes(info)
-            return strips or [(0, "Лента")]
+            return strips or [(0, tr("Лента"))]
         except Exception:
             self.close()
             raise
@@ -130,7 +132,7 @@ class HyperionClient:
             }
         )
         if not reply.get("success"):
-            raise RuntimeError(_error_text(reply, "Hyperion отклонил цвет"))
+            raise RuntimeError(_error_text(reply, tr("Hyperion отклонил цвет")))
         self.lit_priority = priority
         self._blocker = (self.instance, priority, "COLOR")
         if self.instance == 1:
@@ -156,7 +158,7 @@ class HyperionClient:
             }
         )
         if not reply.get("success"):
-            raise RuntimeError(_error_text(reply, "Hyperion не включил режим"))
+            raise RuntimeError(_error_text(reply, tr("Hyperion не включил режим")))
         self.lit_priority = priority
         self._blocker = (self.instance, priority, "EFFECT")
         if self.instance == 1 and name not in SCREEN_NAMES:
@@ -203,7 +205,7 @@ class HyperionClient:
             self.instance = target
             reply = self._call(payload)
             if not reply.get("success"):
-                raise RuntimeError(_error_text(reply, "Hyperion не принял экран"))
+                raise RuntimeError(_error_text(reply, tr("Hyperion не принял экран")))
             self.lit_priority = priority
             self._blocker = (target, priority, "IMAGE")
             if fresh or self._force_show:
@@ -399,20 +401,20 @@ class HyperionClient:
             {"command": "clear", "priority": int(priority), "instance": [self.instance]}
         )
         if not reply.get("success"):
-            raise RuntimeError(_error_text(reply, "Hyperion не погасил цвет"))
+            raise RuntimeError(_error_text(reply, tr("Hyperion не погасил цвет")))
 
     def _open(self) -> None:
         self._drop_socket()
         try:
             sock = socket.create_connection((self.host, self.port), timeout=8)
         except ConnectionRefusedError as exc:
-            raise RuntimeError("Сервер не принимает соединение. Проверьте адрес и порт.") from exc
+            raise RuntimeError(tr("Сервер не принимает соединение. Проверьте адрес и порт.")) from exc
         except TimeoutError as exc:
-            raise RuntimeError("Сервер не отвечает.") from exc
+            raise RuntimeError(tr("Сервер не отвечает.")) from exc
         except OSError as exc:
             if exc.errno in {errno.EHOSTUNREACH, errno.ENETUNREACH, errno.EHOSTDOWN, errno.ENETDOWN}:
-                raise RuntimeError("Сервер в сети не найден. Проверьте адрес и что Hyperion включён.") from exc
-            raise RuntimeError(f"Нет связи с сервером: {exc}") from exc
+                raise RuntimeError(tr("Сервер в сети не найден. Проверьте адрес и что Hyperion включён.")) from exc
+            raise RuntimeError(tr("Нет связи с сервером: {exc}").format(exc=exc)) from exc
         sock.settimeout(8)
         try:
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -427,7 +429,7 @@ class HyperionClient:
                 {"command": "authorize", "subcommand": "login", "password": self.password}
             )
             if not reply.get("success"):
-                raise RuntimeError(_error_text(reply, "Hyperion не пустил"))
+                raise RuntimeError(_error_text(reply, tr("Hyperion не пустил")))
 
     def _drop_socket(self) -> None:
         with self._lock:
@@ -442,12 +444,12 @@ class HyperionClient:
 
     def _call(self, command: dict) -> dict:
         if self._closed or self._sock is None:
-            raise RuntimeError("Нет соединения")
+            raise RuntimeError(tr("Нет соединения"))
         try:
             return self._rpc(command)
         except (OSError, RuntimeError, json.JSONDecodeError):
             if self._closed:
-                raise RuntimeError("Нет соединения")
+                raise RuntimeError(tr("Нет соединения"))
             self._open()
             return self._rpc(command)
 
@@ -457,19 +459,19 @@ class HyperionClient:
             sock = self._sock
             pending = self._pending
             if sock is None:
-                raise RuntimeError("Нет соединения")
+                raise RuntimeError(tr("Нет соединения"))
             try:
                 sock.sendall((json.dumps(command, ensure_ascii=False) + "\n").encode())
                 data = pending
                 while b"\n" not in data:
                     chunk = sock.recv(1024 * 256)
                     if not chunk:
-                        raise RuntimeError("Hyperion закрыл соединение")
+                        raise RuntimeError(tr("Hyperion закрыл соединение"))
                     data += chunk
             except TimeoutError as exc:
-                raise RuntimeError("Сервер не отвечает.") from exc
+                raise RuntimeError(tr("Сервер не отвечает.")) from exc
             except OSError as exc:
-                raise RuntimeError("Связь с Hyperion прервалась") from exc
+                raise RuntimeError(tr("Связь с Hyperion прервалась")) from exc
             line, _, rest = data.partition(b"\n")
             if self._sock is sock:
                 self._pending = rest
@@ -546,7 +548,7 @@ def _strips(info: dict) -> list[tuple[int, str]]:
         except (TypeError, ValueError):
             continue
         name = item.get("friendly_name") or item.get("name")
-        label = name.strip() if isinstance(name, str) and name.strip() else f"Лента {number}"
+        label = name.strip() if isinstance(name, str) and name.strip() else tr("Лента {number}").format(number=number)
         found.append((number, label))
     return found
 

@@ -27,6 +27,7 @@ a = Analysis(
         "app.hyperion_window",
         "app.glass",
         "app.search_page",
+        "app.i18n",
     ],
     noarchive=False,
 )
@@ -59,8 +60,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleName": "Hyperion",
         "CFBundleDisplayName": "Hyperion",
-        "CFBundleShortVersionString": "1.0",
-        "CFBundleVersion": "1",
+        "CFBundleShortVersionString": "1.1",
+        "CFBundleVersion": "2",
         "LSMinimumSystemVersion": "12.0",
         "NSHighResolutionCapable": True,
         "NSScreenCaptureUsageDescription": "Hyperion передаёт изображение экрана на подсветку.",

@@ -29,7 +29,15 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 APP="$(cd "$DIR/../.." && pwd)"
 DEST="/Applications/Hyperion.app"
 if [[ "$APP" != "$DEST" ]]; then
-  osascript -e 'display dialog "Hyperion установится в папку «Программы» и откроется." buttons {"Установить"} default button "Установить" with title "Hyperion"'
+  lang="$(defaults read -g AppleLanguages 2>/dev/null | awk 'NR==2 { gsub(/[",]/, ""); print; exit }')"
+  case "$lang" in
+    en*)
+      osascript -e 'display dialog "Hyperion will be installed in Applications and then opened." buttons {"Install"} default button "Install" with title "Hyperion"'
+      ;;
+    *)
+      osascript -e 'display dialog "Hyperion установится в папку «Программы» и откроется." buttons {"Установить"} default button "Установить" with title "Hyperion"'
+      ;;
+  esac
   rm -rf "$DEST"
   cp -R "$APP" "$DEST"
   xattr -dr com.apple.quarantine "$DEST" 2>/dev/null || true
@@ -40,6 +48,16 @@ fi
 exec "$DIR/Hyperion.bin" "$@"
 EOF
 chmod +x "$BIN/Hyperion"
+
+mkdir -p "$APP/Contents/Resources/en.lproj" "$APP/Contents/Resources/ru.lproj"
+cat > "$APP/Contents/Resources/en.lproj/InfoPlist.strings" <<'EOF'
+"NSScreenCaptureUsageDescription" = "Hyperion sends the screen image to the lights.";
+"NSLocalNetworkUsageDescription" = "Hyperion looks for the light server on the local network.";
+EOF
+cat > "$APP/Contents/Resources/ru.lproj/InfoPlist.strings" <<'EOF'
+"NSScreenCaptureUsageDescription" = "Hyperion передаёт изображение экрана на подсветку.";
+"NSLocalNetworkUsageDescription" = "Hyperion ищет сервер подсветки в локальной сети.";
+EOF
 
 codesign --force --deep --sign - "$APP"
 

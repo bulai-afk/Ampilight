@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 
 from app.discover import ServerSearch, lan_access_denied
 from app.glass import glow_gradient
+from app.i18n import tr
 
 _SPARKS = (
     QColor(77, 135, 255),
@@ -55,7 +56,7 @@ class ServerBeacon(QWidget):
         self._sparks: list[_Spark] = []
         self._phase = 0.0
         self._searching = True
-        self._caption = "Ищем Hyperion…"
+        self._caption = tr("Ищем Hyperion…")
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self._timer.start(16)
@@ -250,7 +251,7 @@ class SearchPage(QWidget):
         self._scroll.setMaximumHeight(168)
         layout.addWidget(self._scroll)
 
-        manual = QPushButton("Подключиться вручную")
+        manual = QPushButton(tr("Подключиться вручную"))
         manual.setObjectName("textButton")
         manual.setCursor(Qt.CursorShape.PointingHandCursor)
         manual.clicked.connect(self.manual.emit)
@@ -269,20 +270,20 @@ class SearchPage(QWidget):
     def retry(self) -> None:
         if self._rows or (self._search is not None and self._search.isRunning()):
             return
-        self.beacon.set_caption("Ищем Hyperion…")
+        self.beacon.set_caption(tr("Ищем Hyperion…"))
         self._start_search()
 
     def _access_denied(self) -> None:
         if not self._rows:
-            self.beacon.set_caption("Нажми «Разрешить» у значка глобуса")
+            self.beacon.set_caption(tr("Нажми «Разрешить» у значка глобуса"))
 
     def _search_finished(self) -> None:
         if self._rows:
             return
         if lan_access_denied():
-            self.beacon.set_caption("Нажми «Разрешить» у значка глобуса")
+            self.beacon.set_caption(tr("Нажми «Разрешить» у значка глобуса"))
         else:
-            self.beacon.set_caption("Сервер не найден")
+            self.beacon.set_caption(tr("Сервер не найден"))
 
     def _follow_list(self) -> None:
         bar = self._scroll.verticalScrollBar()

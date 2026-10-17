@@ -76,7 +76,7 @@ def ensure_login() -> None:
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
     if "--version" in argv:
-        print("Hyperion 1.0")
+        print("Hyperion 1.1")
         return 0
     if "--desk-screen" in argv:
         from app.desk_screen import main as desk_main

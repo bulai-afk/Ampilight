@@ -61,6 +61,7 @@ from app.hyperion import (
     HyperionClient,
 )
 from app.sck import ScreenStream, encode_strip, fit_leds, main_display, open_screen_settings, request_screen_access
+from app.i18n import tr, use_english
 from app.search_page import SearchPage
 
 SOLID = "Solid"
@@ -124,7 +125,7 @@ class _BrightBar(QWidget):
         painter.setFont(font)
         ink = QColor(255, 255, 255) if _luma(self._color) < 150 else QColor(13, 30, 53)
         painter.setPen(ink)
-        painter.drawText(bounds.adjusted(14, 0, -14, 0), int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), "Яркость")
+        painter.drawText(bounds.adjusted(14, 0, -14, 0), int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), tr("Яркость"))
         number = QColor(13, 30, 53) if self._value < 88 else ink
         painter.setPen(number)
         painter.drawText(bounds.adjusted(14, 0, -14, 0), int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight), str(self._value))
@@ -284,7 +285,7 @@ class _Swatches(QWidget):
 
     def mouseMoveEvent(self, event) -> None:
         index = self._hit(event.position())
-        self.setToolTip(self._presets[index][0] if index >= 0 else "")
+        self.setToolTip(tr(self._presets[index][0]) if index >= 0 else "")
 
     def mousePressEvent(self, event) -> None:
         index = self._hit(event.position())
@@ -316,6 +317,9 @@ class StripBar(QWidget):
 
 
 def _link_caption(count: int) -> str:
+    if use_english():
+        word = "strip" if count == 1 else "strips"
+        return f"Connected · {count} {word}"
     if count % 10 == 1 and count % 100 != 11:
         word = "лента"
     elif count % 10 in {2, 3, 4} and count % 100 not in {12, 13, 14}:
@@ -388,7 +392,7 @@ class HyperionThread(QThread):
             elif kind == "effect":
                 name, instance = job[1], job[2]
                 self._client.set_effect(name, DEFAULT_PRIORITY, instance)
-                self.note.emit(f"Режим {name}")
+                self.note.emit(tr("Режим {name}").format(name=tr(name)))
             elif kind == "color":
                 rgb, priority, instance = job[1], job[2], job[3]
                 try:
@@ -398,7 +402,7 @@ class HyperionThread(QThread):
                 self._client._force_show = True
                 self._client.set_color(rgb, priority, instance)
                 red, green, blue = rgb
-                self.note.emit(f"На ленте {red}, {green}, {blue}")
+                self.note.emit(tr("На ленте {red}, {green}, {blue}").format(red=red, green=green, blue=blue))
             elif kind == "image":
                 raw, width, height, instance = job[1], job[2], job[3], job[4]
                 if height == 1:
@@ -412,17 +416,17 @@ class HyperionThread(QThread):
                 instance = job[1] if len(job) > 1 else None
                 forget = job[2] if len(job) > 2 else True
                 self._client.clear(instance=instance, forget=bool(forget))
-                self.note.emit("Лента погашена")
+                self.note.emit(tr("Лента погашена"))
             elif kind == "disconnect":
                 try:
                     self._client.clear()
                 except (OSError, RuntimeError, ValueError):
                     pass
                 self._client.close()
-                self.linked.emit(False, "Отключено")
-                self.note.emit("Отключено")
+                self.linked.emit(False, tr("Отключено"))
+                self.note.emit(tr("Отключено"))
         except (OSError, RuntimeError, ValueError, TypeError) as exc:
-            message = str(exc) or "Ошибка Hyperion"
+            message = str(exc) or tr("Ошибка Hyperion")
             self.failed.emit(message)
             self.note.emit(message)
             if kind in {"connect", "color", "clear"} and not self._client.connected:
@@ -515,7 +519,7 @@ class _EyeButton(QPushButton):
         self.setCheckable(True)
         self.setFixedSize(28, 28)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("Показать пароль")
+        self.setToolTip(tr("Показать пароль"))
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
@@ -534,7 +538,7 @@ class _DevicePicker(QPushButton):
         self.setFixedHeight(46)
 
     def set_name(self, name: str) -> None:
-        self.setText(name)
+        self.setText(tr(name))
 
     def paintEvent(self, event) -> None:
         super().paintEvent(event)
@@ -659,7 +663,8 @@ class _DeviceMenu(QFrame):
         self._list.clear()
         selected = 0
         for index, name in enumerate(items):
-            item = QListWidgetItem(name)
+            item = QListWidgetItem(tr(name))
+            item.setData(Qt.ItemDataRole.UserRole, name)
             item.setSizeHint(item.sizeHint().expandedTo(QSize(0, 36)))
             self._list.addItem(item)
             if name == current:
@@ -676,7 +681,8 @@ class _DeviceMenu(QFrame):
         self.show()
 
     def _pick(self, item: QListWidgetItem) -> None:
-        text = item.text()
+        stored = item.data(Qt.ItemDataRole.UserRole)
+        text = stored if isinstance(stored, str) and stored else item.text()
         QTimer.singleShot(0, self.close)
         self.chosen.emit(text)
 
@@ -834,7 +840,7 @@ class _ScreenPump(QThread):
         try:
             stream.start(main_display(), max_edge=1200, fps=10, embedded=True)
         except (OSError, RuntimeError, ValueError) as exc:
-            self.failed.emit(str(exc) or "захват экрана не запустился")
+            self.failed.emit(str(exc) or tr("захват экрана не запустился"))
             return
         misses = 0
         last = 0
@@ -909,7 +915,7 @@ class _ScreenPump(QThread):
                     if misses < 3:
                         time.sleep(0.3)
                         continue
-                    self.failed.emit(str(exc) or "Hyperion не принял экран")
+                    self.failed.emit(str(exc) or tr("Hyperion не принял экран"))
                     break
         finally:
             stream.stop()
@@ -925,11 +931,11 @@ class _LampButton(QPushButton):
         self.setFixedSize(46, 46)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._lit = False
-        self.setToolTip("Включить")
+        self.setToolTip(tr("Включить"))
 
     def set_lit(self, lit: bool) -> None:
         self._lit = lit
-        self.setToolTip("Выключить" if lit else "Включить")
+        self.setToolTip(tr("Выключить") if lit else tr("Включить"))
         self.update()
 
     def paintEvent(self, _event) -> None:
@@ -1024,13 +1030,13 @@ class HyperionWindow(GlassWindow):
         layout.setSpacing(8)
 
         self.host = QLineEdit()
-        self.host.setPlaceholderText("Адрес")
-        self.host.setToolTip("Адрес")
+        self.host.setPlaceholderText(tr("Адрес"))
+        self.host.setToolTip(tr("Адрес"))
         self.port = QSpinBox()
         self.port.setRange(1, 65535)
         self.port.setValue(DEFAULT_PORT)
         self.port.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
-        self.port.setToolTip("Порт")
+        self.port.setToolTip(tr("Порт"))
         address = QHBoxLayout()
         address.setSpacing(8)
         address.addWidget(self._shell("globe", self.host), 1)
@@ -1041,8 +1047,8 @@ class HyperionWindow(GlassWindow):
 
         self.password = QLineEdit()
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password.setPlaceholderText("Пароль")
-        self.password.setToolTip("Пароль")
+        self.password.setPlaceholderText(tr("Пароль"))
+        self.password.setToolTip(tr("Пароль"))
         self.reveal = _EyeButton()
         self.reveal.toggled.connect(self._toggle_password)
         layout.addWidget(self._shell("lock", self.password, self.reveal))
@@ -1054,13 +1060,13 @@ class HyperionWindow(GlassWindow):
         self.status.setVisible(False)
         layout.addWidget(self.status)
 
-        self.connect_button = QPushButton("Подключить")
+        self.connect_button = QPushButton(tr("Подключить"))
         self.connect_button.setObjectName("composer")
         self.connect_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.connect_button.clicked.connect(self._toggle_connection)
         layout.addWidget(self.connect_button)
 
-        back = QPushButton("Назад к поиску")
+        back = QPushButton(tr("Назад к поиску"))
         back.setObjectName("textButton")
         back.setCursor(Qt.CursorShape.PointingHandCursor)
         back.clicked.connect(lambda: self.stack.setCurrentIndex(0))
@@ -1074,7 +1080,7 @@ class HyperionWindow(GlassWindow):
         outer.setContentsMargins(22, 4, 22, 10)
         outer.setSpacing(4)
 
-        outer.addWidget(self._field("Прибор"))
+        outer.addWidget(self._field(tr("Прибор")))
         self.device = _DevicePicker()
         self.device.set_name("Прибор")
         self.device.clicked.connect(self._open_devices)
@@ -1090,16 +1096,16 @@ class HyperionWindow(GlassWindow):
 
         mode_head = QHBoxLayout()
         mode_head.setSpacing(8)
-        mode_head.addWidget(self._field("Режим"))
+        mode_head.addWidget(self._field(tr("Режим")))
         mode_head.addStretch(1)
-        self.settings_button = QPushButton("Настройки")
+        self.settings_button = QPushButton(tr("Настройки"))
         self.settings_button.setObjectName("textButton")
         self.settings_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.settings_button.clicked.connect(self._open_settings)
         mode_head.addWidget(self.settings_button)
         outer.addLayout(mode_head)
         self.mode = _DevicePicker()
-        self.mode.set_name("Режим")
+        self.mode.set_name(tr("Режим"))
         self.mode.clicked.connect(self._open_modes)
         self._mode_menu = _DeviceMenu()
         self._mode_menu.chosen.connect(self._choose_mode)
@@ -1117,7 +1123,7 @@ class HyperionWindow(GlassWindow):
 
         color_head = QHBoxLayout()
         color_head.setSpacing(8)
-        color_head.addWidget(self._field("Цвет"))
+        color_head.addWidget(self._field(tr("Цвет")))
         color_head.addStretch(1)
         self.hex_label = QLabel("#FFA848")
         self.hex_label.setObjectName("count")
@@ -1145,7 +1151,7 @@ class HyperionWindow(GlassWindow):
         self._apply_rgb(self._rgb, send=False)
         outer.addStretch(1)
 
-        self.back_button = QPushButton("Назад")
+        self.back_button = QPushButton(tr("Назад"))
         self.back_button.setObjectName("textButton")
         self.back_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.back_button.clicked.connect(self._toggle_connection)
@@ -1159,14 +1165,14 @@ class HyperionWindow(GlassWindow):
         layout.setContentsMargins(22, 4, 22, 12)
         layout.setSpacing(6)
 
-        layout.addWidget(self._field("Диоды"))
+        layout.addWidget(self._field(tr("Диоды")))
         grid = QWidget()
         grid_layout = QGridLayout(grid)
         grid_layout.setContentsMargins(0, 0, 0, 0)
         grid_layout.setHorizontalSpacing(8)
         grid_layout.setVerticalSpacing(6)
         for index, (key, title, default) in enumerate(
-            (("left", "Слева", 0), ("top", "Сверху", 0), ("right", "Справа", 0), ("bottom", "Снизу", 27))
+            (("left", tr("Слева"), 0), ("top", tr("Сверху"), 0), ("right", tr("Справа"), 0), ("bottom", tr("Снизу"), 27))
         ):
             cell = QWidget()
             cell_box = QVBoxLayout(cell)
@@ -1182,26 +1188,26 @@ class HyperionWindow(GlassWindow):
             grid_layout.addWidget(cell, index // 2, index % 2)
         layout.addWidget(grid)
 
-        note = QLabel("Диод 1 — правый край стола, дальше цепочка идёт влево.")
+        note = QLabel(tr("Диод 1 — правый край стола, дальше цепочка идёт влево."))
         note.setObjectName("hint")
         note.setWordWrap(True)
         layout.addWidget(note)
 
-        layout.addWidget(self._field("Область захвата"))
+        layout.addWidget(self._field(tr("Область захвата")))
         self.capture = _RangeBar()
         self.capture.changed.connect(lambda _start, _end: self._fit_changed("capture"))
         layout.addWidget(self.capture)
-        layout.addWidget(self._field("Диапазон ленты"))
+        layout.addWidget(self._field(tr("Диапазон ленты")))
         self.span = _RangeBar()
         self.span.changed.connect(lambda _start, _end: self._fit_changed("span"))
         layout.addWidget(self.span)
-        self.span_label = QLabel("Захват и лента задаются одинаковым диапазоном.")
+        self.span_label = QLabel(tr("Захват и лента задаются одинаковым диапазоном."))
         self.span_label.setObjectName("hint")
         self.span_label.setWordWrap(True)
         layout.addWidget(self.span_label)
 
         layout.addStretch(1)
-        done = QPushButton("Готово")
+        done = QPushButton(tr("Готово"))
         done.setObjectName("composer")
         done.setCursor(Qt.CursorShape.PointingHandCursor)
         done.clicked.connect(self._close_settings)
@@ -1351,12 +1357,14 @@ class HyperionWindow(GlassWindow):
         first = total - right_at
         last = total - left_at
         self.span_label.setText(
-            f"Экран {capture_start}–{capture_end}% идёт на диоды {first}–{last}. Остальные гаснут."
+            tr("Экран {start}–{end}% идёт на диоды {first}–{last}. Остальные гаснут.").format(
+                start=capture_start, end=capture_end, first=first, last=last
+            )
         )
 
     def _toggle_password(self, shown: bool) -> None:
         self.password.setEchoMode(QLineEdit.EchoMode.Normal if shown else QLineEdit.EchoMode.Password)
-        self.reveal.setToolTip("Скрыть пароль" if shown else "Показать пароль")
+        self.reveal.setToolTip(tr("Скрыть пароль") if shown else tr("Показать пароль"))
 
     def _connect_last(self) -> None:
         """При запуске сразу открыть сервер, к которому подключались в прошлый раз."""
@@ -1377,18 +1385,18 @@ class HyperionWindow(GlassWindow):
             self._stop_screen()
             self.connect_button.setEnabled(False)
             self.back_button.setEnabled(False)
-            self._set_status("Отключение…", "busy")
+            self._set_status(tr("Отключение…"), "busy")
             self._link.submit(("disconnect",))
             return
         host = self.host.text().strip()
         if not host:
-            self._set_status("Укажите адрес сервера", "bad")
+            self._set_status(tr("Укажите адрес сервера"), "bad")
             return
         self._save()
         self.connect_button.setEnabled(False)
-        self.connect_button.setText("Подключение…")
+        self.connect_button.setText(tr("Подключение…"))
         self._lock_server(True)
-        self._set_status("Подключение…", "busy")
+        self._set_status(tr("Подключение…"), "busy")
         self._link.submit(("connect", host, self.port.value(), self.password.text()))
 
     def _on_linked(self, connected: bool, message: str) -> None:
@@ -1397,7 +1405,7 @@ class HyperionWindow(GlassWindow):
     def _on_failed(self, message: str) -> None:
         if not self._connected:
             self.connect_button.setEnabled(True)
-            self.connect_button.setText("Подключить")
+            self.connect_button.setText(tr("Подключить"))
             self._lock_server(False)
             self.stack.setCurrentIndex(1)
         self.back_button.setEnabled(True)
@@ -1406,7 +1414,7 @@ class HyperionWindow(GlassWindow):
     def _set_linked(self, connected: bool, message: str) -> None:
         self._connected = connected
         self.connect_button.setEnabled(True)
-        self.connect_button.setText("Подключить")
+        self.connect_button.setText(tr("Подключить"))
         self.back_button.setEnabled(True)
         self._lock_server(False)
         if connected:
@@ -1424,7 +1432,7 @@ class HyperionWindow(GlassWindow):
             self._set_screen_hint("")
         if connected:
             kind = "ok"
-        elif not message or message == "Отключено":
+        elif not message or message == tr("Отключено"):
             kind = "idle"
         else:
             kind = "bad"
@@ -1502,7 +1510,7 @@ class HyperionWindow(GlassWindow):
             self._mode = SCREEN_MODE
         if self._mode not in self._modes:
             self._mode = SOLID if SOLID in self._modes else (self._modes[0] if self._modes else "")
-        self.mode.set_name(self._mode or "Нет режимов")
+        self.mode.set_name(self._mode or tr("Нет режимов"))
 
     def _show_modes(self, names: list) -> None:
         self._server_modes = [str(raw).strip() for raw in names if str(raw).strip()]
@@ -1599,7 +1607,7 @@ class HyperionWindow(GlassWindow):
         self.activateWindow()
         granted = request_screen_access()
         if not granted:
-            self._set_screen_hint("Разрешите Hyperion запись экрана в настройках системы")
+            self._set_screen_hint(tr("Разрешите Hyperion запись экрана в настройках системы"))
             open_screen_settings()
             return
         self._lit.add(self._strip)
@@ -1629,11 +1637,12 @@ class HyperionWindow(GlassWindow):
     def _screen_failed(self, message: str) -> None:
         self._stop_screen()
         text = (message or "").strip()
-        if "отклонил" in text or "захват" in text.lower():
-            self._set_screen_hint("Разрешите Hyperion запись экрана в настройках системы")
+        lower = text.lower()
+        if any(word in lower for word in ("отклонил", "захват", "rejected", "capture")):
+            self._set_screen_hint(tr("Разрешите Hyperion запись экрана в настройках системы"))
             open_screen_settings()
             return
-        self._set_screen_hint(text or "Hyperion не принял экран")
+        self._set_screen_hint(text or tr("Hyperion не принял экран"))
 
     def _toggle_power(self) -> None:
         if not self._connected:
@@ -1790,10 +1799,10 @@ class HyperionWindow(GlassWindow):
         self._link.submit(("clear", self._strip, not self._lit))
 
     def _log(self, text: str) -> None:
-        if text.startswith("На ленте") or text.startswith("Подключено"):
+        if text.startswith(tr("На ленте")) or text.startswith(tr("Подключено")):
             self._set_status(text, "ok")
-        elif self._connected and text.startswith("Лента погашена"):
-            self._set_status("На связи, лента погашена", "ok")
+        elif self._connected and text.startswith(tr("Лента погашена")):
+            self._set_status(tr("На связи, лента погашена"), "ok")
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -1847,7 +1856,7 @@ class HyperionWindow(GlassWindow):
         self._tray_capturing = capturing
         self._tray.setIcon(self._menu_icon(capturing, self._tray_phase))
         if hasattr(self, "_capture_button"):
-            self._capture_button.setText("Остановить" if capturing else "Запустить")
+            self._capture_button.setText(tr("Остановить") if capturing else tr("Запустить"))
 
     def _menu_icon(self, capturing: bool, phase: float = 0) -> QIcon:
         """Квадратный телевизор на высоту строки меню. Широкий кадр система сплющивает."""
@@ -1899,20 +1908,20 @@ class HyperionWindow(GlassWindow):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(8)
-        self._preview = QLabel("Захват выключен")
+        self._preview = QLabel(tr("Захват выключен"))
         self._preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._preview.setFixedSize(248, 78)
         self._preview.setStyleSheet(
             "background: #0d1e35; color: white; border-radius: 10px; font-size: 13px; font-weight: 600;"
         )
         layout.addWidget(self._preview)
-        self._capture_button = QPushButton("Запустить")
+        self._capture_button = QPushButton(tr("Запустить"))
         self._capture_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._capture_button.clicked.connect(self._toggle_capture)
-        open_button = QPushButton("Открыть")
+        open_button = QPushButton(tr("Открыть"))
         open_button.setCursor(Qt.CursorShape.PointingHandCursor)
         open_button.clicked.connect(self._show_from_tray)
-        quit_button = QPushButton("Выйти")
+        quit_button = QPushButton(tr("Выйти"))
         quit_button.setCursor(Qt.CursorShape.PointingHandCursor)
         quit_button.clicked.connect(self._quit_from_tray)
         for button in (self._capture_button, open_button, quit_button):
@@ -1935,7 +1944,7 @@ class HyperionWindow(GlassWindow):
         if not self._capture_panel.isVisible():
             return
         capturing = self._capture_running()
-        self._capture_button.setText("Остановить" if capturing else "Запустить")
+        self._capture_button.setText(tr("Остановить") if capturing else tr("Запустить"))
         image = QImage(str(Path("/tmp/ampilight-preview.ppm")))
         if capturing and not image.isNull():
             pixmap = QPixmap.fromImage(image).scaled(
@@ -1947,7 +1956,7 @@ class HyperionWindow(GlassWindow):
             self._preview.setPixmap(pixmap)
             return
         self._preview.setPixmap(QPixmap())
-        self._preview.setText("Захват включён" if capturing else "Захват выключен")
+        self._preview.setText(tr("Захват включён") if capturing else tr("Захват выключен"))
 
     def _toggle_capture(self) -> None:
         if self._capture_running():

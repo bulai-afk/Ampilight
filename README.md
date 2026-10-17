@@ -2,7 +2,7 @@
 
 **Русский** · [English](#english)
 
-Это **неофициальное** приложение. Его нет в составе [Hyperion.ng](https://github.com/hyperion-project/hyperion.ng) и Home Assistant. Это личная разработка: программа написана под свою подсветку и свои привычки, а не как общий продукт. Интерфейс только на русском.
+Это **неофициальное** приложение. Его нет в составе [Hyperion.ng](https://github.com/hyperion-project/hyperion.ng) и Home Assistant. Это личная разработка: программа написана под свою подсветку и свои привычки, а не как общий продукт. Окно следует языку системы: русский или английский. На сервере режим по-прежнему называется «Адаптив».
 
 Скачать установщик: **[Hyperion.dmg](https://github.com/bulai-afk/Ampilight/releases/latest/download/Hyperion.dmg)**  
 Все файлы выпуска: [страница Releases](https://github.com/bulai-afk/Ampilight/releases/latest)
@@ -148,7 +148,7 @@ python3.11 -u -m app.desk_screen
 
 ## English
 
-This is an **unofficial** app. It is not part of [Hyperion.ng](https://github.com/hyperion-project/hyperion.ng) or Home Assistant. It is a personal project, written for the author's own lights and habits, not as a general product. The app itself is Russian only: buttons, menus, and messages are not translated.
+This is an **unofficial** app. It is not part of [Hyperion.ng](https://github.com/hyperion-project/hyperion.ng) or Home Assistant. It is a personal project, written for the author's own lights and habits, not as a general product. The window follows the system language: Russian or English. On the Hyperion server the mode name stays «Адаптив». The screenshots below are the Russian interface.
 
 Download the installer: **[Hyperion.dmg](https://github.com/bulai-afk/Ampilight/releases/latest/download/Hyperion.dmg)**  
 All release files: [Releases](https://github.com/bulai-afk/Ampilight/releases/latest)
@@ -172,7 +172,7 @@ Comments are welcome: what is missing, and what would be worth developing. If pe
 
 If macOS says the developer cannot be verified, right-click Hyperion and choose Open. That prompt appears once: the build is signed locally, without an Apple developer account.
 
-Then allow screen recording and local network access, pick your server, and choose the mode **Адаптив** (Adaptive). Screen capture starts with the app. The label in the window stays in Russian.
+Then allow screen recording and local network access, pick your server, and choose the mode **Adaptive**. On an English Mac the button says Adaptive; the name sent to Hyperion is still **Адаптив**. Screen capture starts with the app.
 
 Running from source, without the installer, is described below.
 
@@ -220,13 +220,13 @@ The window hides to the menu bar. The TV icon opens the capture preview and the 
 <img src="docs/screenshots/search.png" width="240" alt="A Hyperion server found on the network">
 <img src="docs/screenshots/connect.png" width="240" alt="Manual address and password">
 
-1. The first screen searches the network for Hyperion. Pick your server. If the list is empty, open manual entry. The button says «Подключиться вручную».
+1. The first screen searches the network for Hyperion. Pick your server. If the list is empty, open manual entry. The button says **Connect manually** (on a Russian Mac: «Подключиться вручную»).
 2. The address is the Hyperion IP. The port is `19444`. The password is the JSON API password.
-3. Press **Подключить** (Connect).
+3. Press **Connect** (on a Russian Mac: **Подключить**).
 
 The address is remembered, and the next launch connects by itself. Capture from the installer reads that same address.
 
-Then pick the device. The Hyperion instance name should be **Стол** (desk) or **Телевизор** (TV). The app uses that name to decide where the picture goes.
+Then pick the device. The Hyperion instance name should be **Стол** or **Телевизор**. An English Mac shows those as Desk and TV. The app still matches the Russian names on the server.
 
 ### 4. Laptop screen capture
 
@@ -242,7 +242,7 @@ The process takes the server address from the app's saved settings. If the windo
 
 The log should show `жду режим «Адаптив»`, then `захват …%`, then `кадр` lines. Leave the terminal open: closing it stops capture.
 
-In the app, choose **Стол** and the mode **Адаптив**. The strip follows the bottom band of the screen.
+In the app, choose **Desk** and the mode **Adaptive** (a Russian Mac shows **Стол** and **Адаптив**). The strip follows the bottom band of the screen.
 
 <img src="docs/screenshots/control.png" width="240" alt="Desk selected, Adaptive mode">
 

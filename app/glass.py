@@ -8,6 +8,8 @@ from ctypes import c_bool, c_char_p, c_double, c_long, c_void_p
 
 from PyQt6.QtCore import QEasingCurve, QPoint, QPointF, QRect, QRectF, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor, QConicalGradient, QFont, QFontMetrics, QPainter, QPainterPath, QPen
+
+from app.i18n import tr
 from PyQt6.QtWidgets import QApplication, QComboBox, QGridLayout, QLineEdit, QPushButton, QSpinBox, QWidget
 
 RADIUS = 26
@@ -368,7 +370,7 @@ class NetworkMark(QWidget):
         self._font.setFamilies([".AppleSystemUIFont", "SF Pro Text", "Helvetica Neue", "Segoe UI"])
         self._font.setPixelSize(12)
         self._font.setWeight(QFont.Weight.Medium)
-        text = QFontMetrics(self._font).horizontalAdvance("В сети")
+        text = QFontMetrics(self._font).horizontalAdvance(tr("В сети"))
         self.setFixedSize(text + 18, 18)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
@@ -390,7 +392,7 @@ class NetworkMark(QWidget):
         painter.drawEllipse(QRectF(2.5, 5.5, 7, 7))
         painter.setPen(QColor(255, 255, 255, 158))
         painter.setFont(self._font)
-        painter.drawText(QRectF(16, 0, self.width() - 16, self.height()), Qt.AlignmentFlag.AlignVCenter, "В сети")
+        painter.drawText(QRectF(16, 0, self.width() - 16, self.height()), Qt.AlignmentFlag.AlignVCenter, tr("В сети"))
         painter.end()
 
 
