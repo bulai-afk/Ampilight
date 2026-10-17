@@ -4,6 +4,13 @@ Mac app that sends the screen to [Hyperion.ng](https://github.com/hyperion-proje
 
 Ниже — как подключить захват изображения к своему Hyperion.
 
+<p>
+  <img src="docs/screenshots/search.png" width="220" alt="Поиск сервера Hyperion">
+  <img src="docs/screenshots/connect.png" width="220" alt="Адрес, порт и пароль">
+  <img src="docs/screenshots/control.png" width="220" alt="Стол в режиме Адаптив">
+  <img src="docs/screenshots/settings.png" width="220" alt="Диоды и область захвата">
+</p>
+
 ## Что нужно
 
 - Hyperion.ng в одной сети с компьютером. Подойдёт Raspberry Pi или дополнение Home Assistant.
@@ -45,6 +52,9 @@ python3.11 -m app.hyperion_app
 
 ## 3. Подключение к серверу
 
+<img src="docs/screenshots/search.png" width="240" alt="Найденный сервер Hyperion">
+<img src="docs/screenshots/connect.png" width="240" alt="Ручной ввод адреса и пароля">
+
 1. На первом экране программа ищет Hyperion в сети. Выберите свой сервер. Если список пустой, откройте ввод адреса вручную.
 2. Адрес — IP Hyperion. Порт — `19444`. Пароль — пароль JSON API.
 3. Нажмите **Подключить**.
@@ -80,6 +90,8 @@ python3.11 -u -m app.desk_screen
 
 В программе выберите **Стол** и режим **Адаптив**. Лента начнёт повторять нижнюю полосу экрана.
 
+<img src="docs/screenshots/control.png" width="240" alt="Прибор Стол, режим Адаптив">
+
 Как это устроено в Hyperion:
 
 - Кадр экрана идёт с приоритетом **100**. Меньшее число сильнее.
@@ -91,6 +103,8 @@ python3.11 -u -m app.desk_screen
 Тёмный участок кадра гасит свой диод. Красный не подмешивается к белым бликам меню, иначе лента уходит в розовый.
 
 ### Область захвата
+
+<img src="docs/screenshots/settings.png" width="240" alt="Число диодов, область захвата и диапазон ленты">
 
 В настройках программы два ползунка.
 
