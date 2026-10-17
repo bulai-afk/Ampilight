@@ -16,6 +16,8 @@
 
 Программа на Mac отдаёт картинку экрана серверу Hyperion, и светодиодная лента повторяет её. Телефон через Home Assistant и это окно делят один сервер: на ленте остаётся тот, кто задал цвет последним.
 
+Комментарии можно оставлять: чего не хватает и что интересно было бы развивать. Если приложением реально будут пользоваться, это можно доделать. Пишите в [Issues](https://github.com/bulai-afk/Ampilight/issues).
+
 ## Установка
 
 1. Скачайте [Hyperion.dmg](https://github.com/bulai-afk/Ampilight/releases/latest/download/Hyperion.dmg).
@@ -159,6 +161,8 @@ All release files: [Releases](https://github.com/bulai-afk/Ampilight/releases/la
 </p>
 
 The Mac app sends the screen to a Hyperion server, and the LED strip follows that picture. A phone using Home Assistant and this window share one server: the last one to set a color is what the strip shows.
+
+Comments are welcome: what is missing, and what would be worth developing. If people actually use the app, those parts can be finished. Write in [Issues](https://github.com/bulai-afk/Ampilight/issues).
 
 ### Install
 
