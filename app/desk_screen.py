@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import ctypes
 import json
+import os
 import plistlib
 import signal
 import socket
@@ -79,6 +80,11 @@ def should_drop_capture(
 
 
 _SETTINGS = Path.home() / "Library/Preferences/com.ampilight.hyperion.lan.Ampilight.plist"
+_SETTINGS_CANDIDATES = (
+    _SETTINGS,
+    Path.home() / "Library/Preferences/com.ampilight.hyperion.lan.plist",
+)
+_FEEDER_LOCK = Path("/tmp/ampilight-desk-screen.pid")
 _CAPTURE_FLAG = Path("/tmp/ampilight-capturing")
 _PREVIEW = Path("/tmp/ampilight-preview.ppm")
 
@@ -213,13 +219,99 @@ class Hyperion:
             return self._rpc(command)
 
 
+def feeder_running() -> bool:
+    """Уже есть процесс захвата. Второй стал бы слать свою картинку поверх."""
+    if _FEEDER_LOCK.is_file():
+        try:
+            pid = int(_FEEDER_LOCK.read_text(encoding="ascii").strip())
+        except (OSError, ValueError):
+            pid = 0
+        if pid and pid != os.getpid():
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                pass
+            else:
+                return True
+    try:
+        import subprocess
+
+        listed = subprocess.check_output(["pgrep", "-f", "app.desk_screen"], text=True)
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    me = str(os.getpid())
+    return any(item and item != me for item in listed.split())
+
+
+def _hold_feeder_lock() -> None:
+    try:
+        _FEEDER_LOCK.write_text(str(os.getpid()), encoding="ascii")
+    except OSError:
+        pass
+
+
+def read_saved_link(paths: tuple[Path, ...] | None = None) -> tuple[str, int, str, int] | None:
+    """Адрес, который человек ввёл в окне программы."""
+    for path in paths or _SETTINGS_CANDIDATES:
+        try:
+            data = plistlib.loads(path.read_bytes())
+        except (OSError, plistlib.InvalidFileException, ValueError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        host = str(data.get("hyperion_host") or "").strip()
+        if not host:
+            continue
+        try:
+            port = int(data.get("hyperion_port") or PORT)
+        except (TypeError, ValueError):
+            port = PORT
+        password = str(data.get("hyperion_password") or PASSWORD)
+        try:
+            desk = int(data.get("hyperion_instance") or DESK)
+        except (TypeError, ValueError):
+            desk = DESK
+        return host, port, password, desk
+    return None
+
+
+def apply_saved_link(link: Hyperion | None = None) -> None:
+    """После подключения в окне захват переходит на этот сервер."""
+    global HOST, PORT, PASSWORD, DESK
+    saved = read_saved_link()
+    if saved is None:
+        return
+    host, port, password, desk = saved
+    changed = (host, port, password) != (HOST, PORT, PASSWORD)
+    HOST, PORT, PASSWORD, DESK = host, port, password, desk
+    if changed and link is not None:
+        link.close()
+
+
+def _broadcasts() -> list[str]:
+    found = ["192.168.100.255"]
+    try:
+        from app.sender import _ipv4_subnets
+
+        for _ip, _mask, broadcast in _ipv4_subnets():
+            if broadcast not in found:
+                found.append(broadcast)
+    except (OSError, ValueError):
+        pass
+    return found
+
+
 def discover_esp(timeout: float = 0.8) -> str | None:
     """Плата отвечает «AMP,адрес,27». Адрес по DHCP меняется, старый тогда молчит."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.settimeout(0.3)
     try:
-        sock.sendto(b"AMP?", ("192.168.100.255", DISCOVERY_PORT))
+        for broadcast in _broadcasts():
+            try:
+                sock.sendto(b"AMP?", (broadcast, DISCOVERY_PORT))
+            except OSError:
+                continue
         found: str | None = None
         deadline = time.time() + timeout
         while time.time() < deadline:
@@ -392,6 +484,8 @@ def desk_gate(info: dict) -> tuple[bool, bool, bool, tuple[int, int, int] | None
 def main() -> None:
     signal.signal(signal.SIGINT, _handle_stop)
     signal.signal(signal.SIGTERM, _handle_stop)
+    _hold_feeder_lock()
+    apply_saved_link()
     link = Hyperion()
     stream = ScreenStream()
     while not _stop:
@@ -459,6 +553,7 @@ def main() -> None:
             now = time.monotonic()
             if now >= next_discover:
                 next_discover = now + 15
+                apply_saved_link(link)
                 refresh_esp(link)
             if now >= next_check:
                 next_check = now + 0.8

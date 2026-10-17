@@ -13,6 +13,7 @@ import os
 import select
 import struct
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -27,7 +28,19 @@ HEADER = 16
 MAP_SIZE = HEADER + MAX_BYTES
 
 
+def _bundled_helper() -> Path | None:
+    """В установленном приложении захват уже собран, компилятор не нужен."""
+    exe = Path(sys.executable).resolve()
+    for candidate in (exe.parent / "sck-helper", exe.parent.parent / "Resources" / "sck-helper"):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def ensure_helper() -> Path:
+    bundled = _bundled_helper()
+    if bundled is not None:
+        return bundled
     sources = [ROOT / "native" / "sck_helper.m", ROOT / "native" / "sck_capture.m"]
     HELPER.parent.mkdir(parents=True, exist_ok=True)
     newest = max(path.stat().st_mtime for path in sources)

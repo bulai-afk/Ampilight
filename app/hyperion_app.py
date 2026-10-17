@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -11,6 +12,25 @@ from PyQt6.QtWidgets import QApplication
 
 from app.glass import apply_glass_font
 from app.hyperion_window import HyperionWindow
+
+
+def _start_feeder() -> None:
+    """Картинку стола шлёт отдельный процесс. В установленном приложении он поднимается сам."""
+    if "--selftest" in sys.argv or "--no-feeder" in sys.argv:
+        return
+    from app.desk_screen import feeder_running
+
+    if feeder_running():
+        return
+    if getattr(sys, "frozen", False):
+        argv = [sys.executable, "--desk-screen"]
+    else:
+        argv = [sys.executable, "-m", "app.desk_screen"]
+    log = open("/tmp/desk-screen.log", "a", encoding="utf-8")
+    try:
+        subprocess.Popen(argv, stdout=log, stderr=log, start_new_session=True)
+    finally:
+        log.close()
 
 
 def _bundle() -> Path | None:
@@ -55,6 +75,14 @@ def ensure_login() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
+    if "--version" in argv:
+        print("Hyperion 1.0")
+        return 0
+    if "--desk-screen" in argv:
+        from app.desk_screen import main as desk_main
+
+        return desk_main()
+    _start_feeder()
     app = QApplication(argv)
     app.setQuitOnLastWindowClosed(False)
     apply_glass_font(app)

@@ -6,3 +6,5 @@ build/
 android/local.properties
 android/.gradle/
 android/**/build/
+dist/
+*.dmg

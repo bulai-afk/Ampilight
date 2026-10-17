@@ -352,6 +352,29 @@ def test_fit_rgb_shrinks_the_long_edge():
     assert int(small[0, 0, 0]) == 255
 
 
+def test_saved_link_reads_the_server_from_the_app():
+    import plistlib
+    from pathlib import Path
+
+    from app.desk_screen import read_saved_link
+
+    folder = Path("/tmp/ampilight-link-test")
+    folder.mkdir(exist_ok=True)
+    path = folder / "settings.plist"
+    path.write_bytes(
+        plistlib.dumps(
+            {
+                "hyperion_host": "10.0.0.8",
+                "hyperion_port": 19444,
+                "hyperion_password": "secret",
+                "hyperion_instance": 3,
+            }
+        )
+    )
+    assert read_saved_link((path,)) == ("10.0.0.8", 19444, "secret", 3)
+    assert read_saved_link((folder / "missing.plist",)) is None
+
+
 def test_closed_lid_drops_the_frozen_frame():
     from app.desk_screen import should_drop_capture
 
